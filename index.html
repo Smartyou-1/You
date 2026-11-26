@@ -1,0 +1,1278 @@
+<!doctype html><html><head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <script src="https://myhub.ia.br/canvas-vendor/tailwind.js"></script>
+    <style>body{margin:0;padding:16px;box-sizing:border-box;font-family:system-ui,sans-serif;}</style>
+    </head><body><div class="min-h-screen bg-slate-100 text-slate-900">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input, select { font: inherit; }
+    .phone-shell { max-width: 1120px; margin: 0 auto; }
+    .nav-active { color: #0f766e; background: #ecfdf5; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .conversation-panel { display: none; }
+    .conversation-panel.open {
+      display: block; position: fixed; z-index: 24; top: 96px; left: 50%;
+      width: min(680px, calc(100vw - 24px)); max-height: calc(100vh - 120px);
+      overflow-y: auto; transform: translateX(-50%); box-shadow: 0 18px 48px #0f172a44;
+    }
+    .modal-backdrop { display: none; }
+    .modal-backdrop.open { display: flex; }
+    .scrollbar-hide { scrollbar-width: none; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .summary-scroll { max-height: 76px; overflow-y: scroll; scrollbar-width: thin; scrollbar-color: #99f6e4 rgba(255,255,255,.18); }
+    .summary-scroll::-webkit-scrollbar { width: 8px; }
+    .summary-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.18); border-radius: 999px; }
+    .summary-scroll::-webkit-scrollbar-thumb { background: #99f6e4; border: 2px solid rgba(255,255,255,.18); border-radius: 999px; }
+    .showcase-progress { animation: showcase-timer 7s linear infinite; }
+    .showcase-speed-slider {
+      writing-mode: vertical-lr;
+      direction: rtl;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 22px;
+      height: 92px;
+      cursor: pointer;
+      accent-color: #5eead4;
+    }
+    @keyframes showcase-timer { from { width: 0%; } to { width: 100%; } }
+    .pet-companion {
+      position: absolute; z-index: 25; left: 68vw; top: 48vh;
+      display: flex; align-items: flex-start; gap: 5px;
+      transition: left 5s ease-in-out, top 5s ease-in-out, opacity .4s ease;
+      pointer-events: none;
+    }
+    .pet-companion.pet-hidden { opacity: 0; visibility: hidden; }
+    .pet-avatar {
+      display: grid; place-items: center; width: 64px; height: 64px;
+      border: 2px solid white; border-radius: 999px; background: #ccfbf1;
+      box-shadow: 0 8px 24px #0f766e33; font-size: 36px;
+      pointer-events: auto; cursor: pointer; animation: pet-breathe 2.8s ease-in-out infinite;
+      overflow: hidden;
+    }
+    .pet-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .pet-close {
+      display: grid; place-items: center; width: 24px; height: 24px;
+      margin-left: -12px; border: 1px solid #e2e8f0; border-radius: 999px;
+      background: white; color: #475569; font-size: 16px; line-height: 1;
+      pointer-events: auto; cursor: pointer; box-shadow: 0 2px 8px #0f172a22;
+    }
+    .pet-bubble {
+      position: absolute; bottom: 70px; left: 0; width: max-content; max-width: min(250px, 70vw);
+      border: 1px solid #99f6e4; border-radius: 16px; background: white;
+      padding: 10px 12px; color: #134e4a; font-size: 13px; font-weight: 600;
+      line-height: 1.4; box-shadow: 0 8px 24px #0f172a1a;
+      animation: pet-enter .35s ease-out;
+    }
+    .pet-reopen {
+      position: fixed; right: 14px; bottom: 92px; z-index: 25;
+      display: grid; place-items: center; width: 46px; height: 46px;
+      border: 2px solid white; border-radius: 999px; background: #ccfbf1;
+      box-shadow: 0 6px 18px #0f766e33; font-size: 24px; cursor: pointer;
+    }
+    @keyframes pet-breathe { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+    @keyframes pet-enter { from { opacity: 0; transform: translateY(8px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .pet-sleeping .pet-avatar { animation-duration: 4s; filter: saturate(.75); }
+    .pet-meditating .pet-avatar { animation-duration: 5s; }
+    .pet-waking .pet-avatar { animation-duration: 1.2s; }
+    .abnt-writing, .abnt-text {
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      text-align: justify;
+      text-indent: 1.25cm;
+    }
+    .abnt-writing { min-height: 120px; }
+
+  </style>
+
+  <div class="phone-shell min-h-screen bg-white shadow-xl">
+    <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Nereu</p>
+          <h1 id="greetingTitle" class="text-xl font-bold tracking-tight">Bom dia, Nereu! O que vamos fazer hoje?</h1>
+          <p id="agendaGreeting" class="mt-1 text-sm text-slate-600"></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="installAppBtn" class="hidden rounded-xl bg-teal-700 px-3 py-2 text-sm font-semibold text-white" type="button">Instalar</button>
+          <button id="profileBtn" class="flex h-10 w-10 items-center justify-center rounded-full bg-teal-50 text-sm font-bold text-teal-800" aria-label="Perfil">N</button>
+        </div>
+      </div>
+      <section id="conversationPanel" class="conversation-panel mt-3 rounded-2xl border border-teal-100 bg-teal-50 p-3" aria-label="Conversa com o usuário">
+        <p id="conversationPrompt" class="text-lg font-bold text-teal-900">Oi, Nereu! O que está animando seu dia hoje?</p>
+        <p class="mt-1 text-xs text-slate-600">Estou por aqui para trocar ideias. Responda, escreva ou grave sua experiência — do seu jeito e no seu tempo.</p>
+        <div class="mt-3">
+          <label for="petPhotoInput" class="inline-flex cursor-pointer items-center rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-800">📷 Escolher foto do bichinho</label>
+          <input id="petPhotoInput" type="file" accept="image/*" class="hidden">
+          <p id="petPhotoStatus" class="mt-1 text-xs text-slate-500" aria-live="polite">A foto escolhida aparece no lugar do ícone do bichinho.</p>
+        </div>
+        <section class="mt-4 rounded-2xl border border-teal-100 bg-white p-3" aria-label="Agenda do bichinho">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">Minha agenda</h2>
+              <p class="text-xs text-slate-500">Compromissos e lembretes</p>
+            </div>
+            <button class="shrink-0 rounded-xl bg-teal-700 px-3 py-2 text-sm font-semibold text-white" data-open="appointmentModal">＋ Agendar</button>
+          </div>
+          <div id="appointmentList" class="mt-3 space-y-3"></div>
+        </section>
+        <details class="mt-3">
+          <summary class="cursor-pointer text-sm font-semibold text-teal-800">Quero contar minha experiência</summary>
+          <div class="mt-3 space-y-3">
+            <textarea id="experienceText" rows="3" class="abnt-writing w-full rounded-xl border border-teal-200 bg-white px-3 py-2" placeholder="Escreva aqui, se quiser..."></textarea>
+            <p class="text-xs text-slate-500">Formatação aplicada ao relato: Arial 12, espaçamento 1,5, texto justificado e recuo inicial — preset visual inspirado em convenções ABNT.</p>
+            <div class="flex flex-wrap gap-2">
+              <button id="dictateExperienceBtn" type="button" class="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-800">🎙 Transcrever voz</button>
+              <button id="recordAudioBtn" type="button" class="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-800">● Gravar áudio</button>
+              <label class="cursor-pointer rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-800">
+                ＋ Escolher ou gravar vídeo curto
+                <input id="experienceVideoInput" type="file" accept="video/*" capture="environment" class="hidden">
+              </label>
+              <button id="saveExperienceBtn" type="button" class="rounded-xl bg-teal-700 px-3 py-2 text-sm font-semibold text-white">Guardar relato</button>
+            </div>
+            <p id="recordingStatus" class="text-xs text-slate-500" aria-live="polite"></p>
+            <p class="text-xs text-slate-500">A transcrição usa o reconhecimento de voz disponível no navegador e pode variar conforme o dispositivo. A correção contextual das palavras não está disponível neste protótipo.</p>
+            <div id="experienceSaved" class="hidden rounded-xl bg-white p-3 text-sm"></div>
+            <p id="experienceReply" class="hidden rounded-xl bg-teal-100 p-3 text-sm font-medium text-teal-900" aria-live="polite"></p>
+            <p class="text-xs text-slate-500">Compartilhar sua experiência em outras plataformas poderá ser uma etapa futura.</p>
+          </div>
+        </details>
+      </section>
+    </header>
+
+    <main class="px-5 pb-28 pt-5">
+      <section id="homePage" class="page active">
+
+        <section id="businessShowcase" class="mb-6 rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-4 shadow-sm" aria-label="Vitrine de fotos e vídeos">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Vitrine do negócio</p>
+              <h2 class="mt-1 text-lg font-bold">Fotos e vídeos</h2>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button id="shareBusinessMediaBtn" type="button" class="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-800">↗ Compartilhar</button>
+              <label class="cursor-pointer rounded-xl bg-teal-700 px-3 py-2 text-sm font-semibold text-white">
+                ＋ Adicionar
+                <input id="businessMediaInput" type="file" accept="image/*,video/*" multiple class="hidden">
+              </label>
+            </div>
+          </div>
+          <div class="relative mt-4 overflow-hidden rounded-2xl bg-slate-900">
+            <div id="businessMedia" class="flex min-h-56 items-center justify-center"></div>
+            <div class="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full bg-black/60 px-2 py-2 text-white">
+              <span class="text-[10px] font-semibold">Rápido</span>
+              <input id="businessSpeedControl" class="showcase-speed-slider" type="range" min="0.5" max="2" step="0.1" value="1" aria-label="Velocidade dos slides e vídeos">
+              <span class="text-[10px] font-semibold">Lento</span>
+              <output id="businessSpeedValue" class="text-xs font-bold">1×</output>
+            </div>
+            <div id="businessSlideControls" class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent p-3">
+              <button id="businessPrevSlide" type="button" class="rounded-full bg-black/40 px-3 py-1.5 text-lg font-bold text-white" aria-label="Slide anterior">‹</button>
+              <div class="mx-3 flex-1">
+                <div id="businessSlideDots" class="mb-2 flex justify-center gap-1.5"></div>
+                <div class="h-1 overflow-hidden rounded-full bg-white/40"><div class="showcase-progress h-full bg-teal-300"></div></div>
+              </div>
+              <button id="businessNextSlide" type="button" class="rounded-full bg-black/40 px-3 py-1.5 text-lg font-bold text-white" aria-label="Próximo slide">›</button>
+            </div>
+          </div>
+          <p class="mt-2 text-xs text-slate-500">Teste local: escolha no celular fotos e vídeos nomeados no padrão foto=Descrição=you_1.ext ou video=Descrição=you_2.ext. Os arquivos ficam apenas nesta sessão do navegador; não são enviados nem publicados para outros usuários. Se fechar ou atualizar o app, selecione-os novamente. A exibição depende dos formatos aceitos pelo navegador.</p>
+        </section>
+
+        <div class="rounded-3xl bg-gradient-to-br from-teal-800 to-emerald-700 p-5 text-white shadow-lg">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <p class="text-sm font-semibold text-teal-100">Resumo financeiro</p>
+            <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-medium">Este mês</span>
+          </div>
+          <div class="summary-scroll pr-2">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="rounded-2xl bg-white/10 p-3">
+                <p class="text-xs text-teal-100">Entradas</p>
+                <p id="incomeTotal" class="mt-1 text-base font-semibold">R$ 5.200,00</p>
+              </div>
+              <div class="rounded-2xl bg-white/10 p-3">
+                <p class="text-xs text-teal-100">Saídas</p>
+                <p id="expenseTotal" class="mt-1 text-base font-semibold">R$ 2.140,00</p>
+              </div>
+            </div>
+            <div class="mt-2 grid grid-cols-1 gap-2">
+              <div class="rounded-2xl bg-white/10 p-3">
+                <p class="text-xs text-teal-100">Saldo nas contas</p>
+                <p id="totalBalance" class="mt-1 text-base font-semibold">R$ 8.450,00</p>
+              </div>
+              <div class="rounded-2xl bg-white/10 p-3">
+                <p class="text-xs text-teal-100">Investimentos</p>
+                <p class="mt-1 text-base font-semibold">R$ 3.000,00</p>
+              </div>
+              <div class="rounded-2xl bg-white/10 p-3">
+                <p class="text-xs text-teal-100">Reserva de emergência</p>
+                <p class="mt-1 text-base font-semibold">R$ 3.000,00</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between">
+          <h2 class="text-lg font-bold">Acesso rápido</h2>
+          <button class="text-sm font-semibold text-teal-700" data-page="movementsPage">Ver tudo</button>
+        </div>
+        <div class="mt-3 grid grid-cols-3 gap-3">
+          <button class="quick-action rounded-2xl border border-slate-200 p-3 text-left hover:bg-slate-50" data-open="movementModal">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-xl">＋</span>
+            <span class="mt-2 block text-sm font-semibold">Movimentação</span>
+          </button>
+          <button class="quick-action rounded-2xl border border-slate-200 p-3 text-left hover:bg-slate-50" data-open="accountModal">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-xl">▣</span>
+            <span class="mt-2 block text-sm font-semibold">Nova conta</span>
+          </button>
+          <button class="quick-action rounded-2xl border border-slate-200 p-3 text-left hover:bg-slate-50" data-page="investmentsPage">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-xl">↗</span>
+            <span class="mt-2 block text-sm font-semibold">Simular</span>
+          </button>
+        </div>
+
+        <div class="mt-7 flex items-center justify-between">
+          <h2 class="text-lg font-bold">Movimentações recentes</h2>
+          <span class="text-xs text-slate-500">Exemplo</span>
+        </div>
+        <div id="recentList" class="mt-3 space-y-3"></div>
+
+
+      </section>
+
+      <section id="movementsPage" class="page">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-slate-500">Seu histórico</p>
+            <h2 class="text-2xl font-bold">Movimentações</h2>
+          </div>
+          <button class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white" data-open="movementModal">＋ Adicionar</button>
+        </div>
+        <div class="mt-5 flex gap-2 overflow-x-auto scrollbar-hide">
+          <button class="filter-btn rounded-full bg-teal-700 px-4 py-2 text-sm font-medium text-white" data-filter="Todas">Todas</button>
+          <button class="filter-btn rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600" data-filter="Ganho">Ganhos</button>
+          <button class="filter-btn rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600" data-filter="Gasto">Gastos</button>
+          <button class="filter-btn rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600" data-filter="Transferência">Transferências</button>
+        </div>
+        <div class="mt-5">
+          <h3 class="mb-3 text-sm font-semibold text-slate-500">NOVEMBRO</h3>
+          <div id="movementList" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <section id="investmentsPage" class="page">
+        <p class="text-sm text-slate-500">Planeje sem promessas de retorno</p>
+        <h2 class="text-2xl font-bold">Investimentos</h2>
+        <div class="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-4">
+          <p class="text-sm font-semibold text-amber-900">Simulação educativa</p>
+          <p class="mt-1 text-sm leading-5 text-amber-800">Informe uma taxa hipotética. O resultado é uma estimativa e não considera automaticamente regras específicas de cada produto, impostos ou taxas.</p>
+        </div>
+
+        <div class="mt-5 rounded-3xl border border-slate-200 p-4">
+          <h3 class="text-lg font-bold">Simulador</h3>
+          <div class="mt-4 space-y-4">
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium text-slate-700">Tipo de aplicação</span>
+              <select id="investmentType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-3">
+                <option>Renda fixa — CDB / RDB</option>
+                <option>Tesouro Direto</option>
+                <option>Poupança</option>
+                <option>Fundos de investimento</option>
+                <option>Ações / ETFs / FIIs</option>
+                <option>Criptoativos</option>
+                <option>Outro tipo</option>
+              </select>
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="mb-1.5 block text-sm font-medium text-slate-700">Valor inicial</span>
+                <div class="flex items-center rounded-xl border border-slate-300 px-3">
+                  <span class="text-slate-500">R$</span>
+                  <input id="initialAmount" type="number" min="0" value="1000" class="w-full border-0 px-2 py-3 outline-none">
+                </div>
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-sm font-medium text-slate-700">Aporte mensal</span>
+                <div class="flex items-center rounded-xl border border-slate-300 px-3">
+                  <span class="text-slate-500">R$</span>
+                  <input id="monthlyAmount" type="number" min="0" value="200" class="w-full border-0 px-2 py-3 outline-none">
+                </div>
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="mb-1.5 block text-sm font-medium text-slate-700">Prazo (meses)</span>
+                <input id="months" type="number" min="1" value="24" class="w-full rounded-xl border border-slate-300 px-3 py-3">
+              </label>
+              <label class="block">
+                <span class="mb-1.5 block text-sm font-medium text-slate-700">Taxa anual hipotética</span>
+                <div class="flex items-center rounded-xl border border-slate-300 px-3">
+                  <input id="annualRate" type="number" step="0.1" value="8" class="w-full border-0 py-3 outline-none">
+                  <span class="text-slate-500">%</span>
+                </div>
+              </label>
+            </div>
+            <button id="simulateBtn" class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800">Calcular estimativa</button>
+          </div>
+
+          <div id="simulationResult" class="mt-4 hidden rounded-2xl bg-slate-50 p-4">
+            <p class="text-sm text-slate-500">Valor final estimado</p>
+            <p id="finalValue" class="mt-1 text-2xl font-bold text-teal-800">R$ 0,00</p>
+            <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div><p class="text-slate-500">Total aportado</p><p id="investedValue" class="font-semibold"></p></div>
+              <div><p class="text-slate-500">Rendimento estimado</p><p id="returnValue" class="font-semibold"></p></div>
+            </div>
+            <p class="mt-3 text-xs leading-5 text-slate-500">Estimativa nominal, com capitalização mensal e aportes no fim de cada mês. Não é recomendação nem garantia de resultado.</p>
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between">
+          <h3 class="text-lg font-bold">Minha carteira</h3>
+          <button id="addInvestmentBtn" class="text-sm font-semibold text-teal-700">＋ Registrar</button>
+        </div>
+        <div id="portfolioCard" class="mt-3 rounded-2xl border border-slate-200 p-4">
+          <div class="flex items-center justify-between">
+            <div><p class="font-semibold">Reserva de emergência</p><p class="text-sm text-slate-500">Valor informado manualmente</p></div>
+            <p class="font-bold">R$ 3.000,00</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="settingsPage" class="page">
+        <p class="text-sm text-slate-500">Personalize seu controle</p>
+        <h2 class="text-2xl font-bold">Contas e categorias</h2>
+        <div class="mt-5 rounded-2xl border border-slate-200 p-4">
+          <div class="flex items-center justify-between">
+            <div><h3 class="font-bold">Minhas contas</h3><p class="text-sm text-slate-500">Adicione contas ou fontes de dinheiro</p></div>
+            <button class="rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800" data-open="accountModal">＋ Nova</button>
+          </div>
+          <div id="accountList" class="mt-4 space-y-3"></div>
+        </div>
+        <div class="mt-4 rounded-2xl border border-slate-200 p-4">
+          <div class="flex items-center justify-between">
+            <div><h3 class="font-bold">Categorias</h3><p class="text-sm text-slate-500">Organize ganhos e gastos</p></div>
+            <button class="rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800" data-open="categoryModal">＋ Nova</button>
+          </div>
+          <div id="categoryList" class="mt-4 flex flex-wrap gap-2"></div>
+        </div>
+        <div class="mt-4 rounded-2xl bg-slate-50 p-4">
+          <h3 class="font-semibold">Privacidade e segurança</h3>
+          <p class="mt-1 text-sm leading-5 text-slate-600">Na versão final, inclua bloqueio por biometria ou senha, exportação dos dados e opção para excluí-los.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 z-20 mx-auto grid max-w-[1120px] grid-cols-4 border-t border-slate-200 bg-white px-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2">
+      <button class="nav-item nav-active flex flex-col items-center gap-1 rounded-xl py-2 text-xs font-medium" data-page="homePage"><span class="text-xl">⌂</span>Início</button>
+      <button class="nav-item flex flex-col items-center gap-1 rounded-xl py-2 text-xs font-medium text-slate-500" data-page="movementsPage"><span class="text-xl">⇄</span>Movimentos</button>
+      <button class="nav-item flex flex-col items-center gap-1 rounded-xl py-2 text-xs font-medium text-slate-500" data-page="investmentsPage"><span class="text-xl">↗</span>Investimentos</button>
+      <button class="nav-item flex flex-col items-center gap-1 rounded-xl py-2 text-xs font-medium text-slate-500" data-page="settingsPage"><span class="text-xl">☰</span>Mais</button>
+      <div class="col-span-4 pb-1 text-center text-xs font-semibold tracking-wide text-teal-700">you</div>
+    </nav>
+  </div>
+
+  <div id="movementModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-xl font-bold">Nova movimentação</h3><button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button></div>
+      <form id="movementForm" class="mt-4 space-y-3">
+        <label class="block"><span class="mb-1 block text-sm font-medium">Descrição</span><input id="movementDescription" required class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Ex.: Mercado"></label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="mb-1 block text-sm font-medium">Valor</span><input id="movementAmount" type="number" min="0.01" step="0.01" required class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="0,00"></label>
+          <label class="block"><span class="mb-1 block text-sm font-medium">Tipo</span><select id="movementKind" class="w-full rounded-xl border border-slate-300 px-3 py-3"><option>Gasto</option><option>Ganho</option><option>Transferência</option></select></label>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="mb-1 block text-sm font-medium">Categoria</span><select id="movementCategory" class="w-full rounded-xl border border-slate-300 px-3 py-3"></select></label>
+          <label class="block"><span class="mb-1 block text-sm font-medium">Conta</span><select id="movementAccount" class="w-full rounded-xl border border-slate-300 px-3 py-3"></select></label>
+        </div>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Data</span><input id="movementDate" type="date" required class="w-full rounded-xl border border-slate-300 px-3 py-3"></label>
+        <button class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white">Salvar movimentação</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="accountModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-xl font-bold">Adicionar conta</h3><button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button></div>
+      <form id="accountForm" class="mt-4 space-y-3">
+        <label class="block"><span class="mb-1 block text-sm font-medium">Nome da conta</span><input id="accountName" required class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Ex.: Conta principal"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Saldo inicial</span><input id="accountBalance" type="number" step="0.01" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="0,00"></label>
+        <button class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white">Adicionar conta</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="categoryModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-xl font-bold">Nova categoria</h3><button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button></div>
+      <form id="categoryForm" class="mt-4 space-y-3">
+        <label class="block"><span class="mb-1 block text-sm font-medium">Nome da categoria</span><input id="categoryName" required class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Ex.: Pets"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Tipo</span><select id="categoryKind" class="w-full rounded-xl border border-slate-300 px-3 py-3"><option>Gasto</option><option>Ganho</option><option>Investimento</option></select></label>
+        <button class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white">Adicionar categoria</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="appointmentModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-xl font-bold">Novo compromisso</h3><button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button></div>
+      <form id="appointmentForm" class="mt-4 space-y-3">
+        <label class="block"><span class="mb-1 block text-sm font-medium">Compromisso</span><input id="appointmentTitle" required class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Ex.: Consulta médica"></label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="mb-1 block text-sm font-medium">Data</span><input id="appointmentDate" type="date" required class="w-full rounded-xl border border-slate-300 px-3 py-3"></label>
+          <label class="block"><span class="mb-1 block text-sm font-medium">Horário</span><input id="appointmentTime" type="time" required class="w-full rounded-xl border border-slate-300 px-3 py-3"></label>
+        </div>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Avisar</span><select id="appointmentReminder" class="w-full rounded-xl border border-slate-300 px-3 py-3"><option value="0">No horário</option><option value="5">5 minutos antes</option><option value="15" selected>15 minutos antes</option><option value="30">30 minutos antes</option><option value="60">1 hora antes</option></select></label>
+        <button class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white">Salvar compromisso</button>
+      </form>
+    </div>
+  </div>
+
+
+
+  <div id="businessEditModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-xl font-bold">Editar vitrine</h3><button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button></div>
+      <form id="businessForm" class="mt-4 space-y-3">
+        <label class="block"><span class="mb-1 block text-sm font-medium">Nome do negócio</span><input id="businessNameInput" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Ex.: Ateliê da Ana"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Apresentação</span><textarea id="businessDescriptionInput" rows="3" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Conte brevemente sobre o negócio"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Experiência</span><input id="businessExperienceInput" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Ex.: 8 anos de experiência"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Propagandas e novidades</span><textarea id="businessAdsInput" rows="3" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Divulgue ofertas, diferenciais e novidades dos seus produtos ou serviços"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Título profissional do currículo</span><input id="businessResumeTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Ex.: Profissional autônomo(a)"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Resumo profissional</span><textarea id="businessResumeSummaryInput" rows="3" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Conte sobre sua experiência e seus diferenciais"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Competências</span><input id="businessResumeSkillsInput" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Separe por vírgulas"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Produtos e serviços</span><textarea id="businessOffersInput" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Separe os itens por vírgula"></textarea></label>
+        <button class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white">Salvar vitrine</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="resumeModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-xl font-bold">Currículo profissional</h3>
+        <button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button>
+      </div>
+      <p id="businessResumeTitle" class="mt-4 font-bold text-slate-900"></p>
+      <p id="businessResumeSummary" class="mt-2 text-sm leading-5 text-slate-600"></p>
+      <div id="businessResumeSkills" class="mt-3 flex flex-wrap gap-2"></div>
+    </div>
+  </div>
+
+  <div id="clientInterviewModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-xl font-bold">Entrevista de descoberta</h3>
+          <p class="mt-1 text-sm text-slate-500">Perguntas para compreender a situação e as necessidades do cliente.</p>
+        </div>
+        <button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button>
+      </div>
+      <form id="clientInterviewForm" class="mt-4 space-y-4">
+        <label class="block"><span class="mb-1 block text-sm font-medium">Nome do cliente ou como prefere identificá-lo</span><input id="interviewClient" class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Opcional"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">1. O que está acontecendo? Qual é o principal problema que você gostaria de resolver?</span><textarea id="interviewProblem" required rows="3" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">2. Em que situação ou momento esse problema costuma aparecer?</span><textarea id="interviewContext" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">3. Com que frequência acontece e há quanto tempo?</span><textarea id="interviewFrequency" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">4. Como isso afeta sua rotina, seus resultados ou outras pessoas?</span><textarea id="interviewImpact" required rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">5. O que você já tentou fazer para resolver? O que funcionou ou não funcionou?</span><textarea id="interviewAttempts" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">6. Qual seria o resultado ideal para você?</span><textarea id="interviewOutcome" required rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">7. Existe algum prazo, obstáculo ou limitação importante?</span><textarea id="interviewConstraints" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">8. Que tipo de ajuda você espera receber?</span><textarea id="interviewSupport" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <button class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white">Gerar relato do problema</button>
+      </form>
+      <section id="clientInterviewReport" class="mt-5 hidden rounded-2xl border border-teal-100 bg-teal-50 p-4">
+        <h4 class="font-bold text-teal-900">Relato detalhado do cliente</h4>
+        <pre id="clientInterviewReportText" class="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-slate-700"></pre>
+        <p class="mt-3 text-xs text-slate-500">Relato organizado somente com base nas respostas registradas; confirme os detalhes com o cliente.</p>
+      </section>
+    </div>
+  </div>
+
+  <div id="quoteModal" class="modal-backdrop fixed inset-0 z-30 items-end justify-center bg-slate-900/50 p-3 sm:items-center">
+    <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-xl font-bold">Solicitar orçamento</h3><button class="close-modal text-2xl text-slate-400" aria-label="Fechar">×</button></div>
+      <form id="quoteForm" class="mt-4 space-y-3">
+        <label class="block"><span class="mb-1 block text-sm font-medium">Seu nome</span><input id="quoteName" required class="w-full rounded-xl border border-slate-300 px-3 py-3"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">Contato</span><input id="quoteContact" required class="w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Telefone ou e-mail"></label>
+        <label class="block"><span class="mb-1 block text-sm font-medium">O que você precisa?</span><textarea id="quoteDetails" required rows="3" class="w-full rounded-xl border border-slate-300 px-3 py-3"></textarea></label>
+        <button class="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white">Preparar pedido</button>
+        <p class="text-xs text-slate-500">Demonstração: o pedido não é enviado a um negócio real.</p>
+      </form>
+    </div>
+  </div>
+
+  <div id="petCompanion" class="pet-companion" aria-label="Amigo virtual">
+    <div id="petBubble" class="pet-bubble" role="status">Oi! Estou por aqui para te acompanhar. 🐾</div>
+    <button id="petAvatar" class="pet-avatar" type="button" aria-label="Conversar com o amigo virtual"><span id="petEmoji">🐱</span><img id="petPhoto" class="hidden" alt="Foto do bichinho"></button>
+    <button id="petClose" class="pet-close" type="button" aria-label="Esconder o amigo virtual" title="Esconder">×</button>
+  </div>
+  <button id="petReopen" class="pet-reopen hidden" type="button" aria-label="Mostrar amigo virtual" title="Mostrar amigo virtual">🐾</button>
+
+  <div id="toast" class="fixed bottom-24 left-1/2 z-40 hidden -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg"></div>
+
+  <script>
+    const money = value => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+    let accounts = [
+      { name: "Conta principal", balance: 6200 },
+      { name: "Carteira", balance: 250 },
+      { name: "Conta poupança", balance: 2000 }
+    ];
+    let categories = [
+      { name: "Moradia", kind: "Gasto" }, { name: "Alimentação", kind: "Gasto" },
+      { name: "Transporte", kind: "Gasto" }, { name: "Salário", kind: "Ganho" },
+      { name: "Lazer", kind: "Gasto" }, { name: "Outros", kind: "Gasto" }
+    ];
+    let movements = [
+      { description: "Salário", amount: 5200, kind: "Ganho", category: "Salário", account: "Conta principal", date: "2026-11-25" },
+      { description: "Supermercado", amount: 385.7, kind: "Gasto", category: "Alimentação", account: "Conta principal", date: "2026-11-24" },
+      { description: "Conta de luz", amount: 142.3, kind: "Gasto", category: "Moradia", account: "Conta principal", date: "2026-11-23" },
+      { description: "Café", amount: 18, kind: "Gasto", category: "Alimentação", account: "Carteira", date: "2026-11-22" }
+    ];
+    let appointments = [];
+
+    const alertedAppointments = new Set();
+    let currentFilter = "Todas";
+    let businessProfile = {
+      name: "Minha vitrine",
+      description: "Apresente seu negócio, sua experiência e o que você oferece aos clientes.",
+      experience: "Experiência prática em atendimento e prestação de serviços.",
+      ads: "Apresente aqui suas ofertas, novidades e diferenciais.",
+      resumeTitle: "Profissional autônomo(a)",
+      resumeSummary: "Profissional dedicado(a), com foco na qualidade do atendimento, organização e entrega de soluções conforme a necessidade de cada cliente. Edite este exemplo com sua trajetória real.",
+      resumeSkills: ["Atendimento ao cliente", "Organização", "Comunicação"],
+      offers: []
+    };
+    let businessMedia = [];
+    let businessSlideIndex = 0;
+    let businessSlideTimer;
+    let businessPlaybackSpeed = 1;
+
+    function parseBusinessMediaName(fileName) {
+      const match = String(fileName).match(/^(foto|video)=([^=]+)=you_(\\d+)\\.([a-z0-9]+)$/i);
+      return match ? { kind: match[1].toLowerCase(), order: Number(match[3]) } : null;
+    }
+
+    function showMediaCompatibilityWarning(fileName) {
+      showToast(`Arquivo reconhecido (${fileName}), mas não foi possível exibi-lo neste navegador. Verifique o formato ou tente outro navegador.`);
+    }
+
+    function configureShowcasePlayback() {
+      const speedControl = document.getElementById("businessSpeedControl");
+      const speedValue = document.getElementById("businessSpeedValue");
+      if (speedControl) businessPlaybackSpeed = Number(speedControl.value) || 1;
+      if (speedValue) speedValue.textContent = `${businessPlaybackSpeed.toFixed(1).replace(".0", "")}×`;
+
+      const progress = document.querySelector(".showcase-progress");
+      if (progress) progress.style.animationDuration = `${7 / businessPlaybackSpeed}s`;
+
+      const video = document.querySelector("#businessMedia video");
+      if (video) video.playbackRate = businessPlaybackSpeed;
+
+      clearInterval(businessSlideTimer);
+      if (businessMedia.length > 1) {
+        businessSlideTimer = setInterval(nextBusinessSlide, 7000 / businessPlaybackSpeed);
+      }
+    }
+
+    function renderBusinessShowcase() {
+      const mediaContainer = document.getElementById("businessMedia");
+      const controls = document.getElementById("businessSlideControls");
+      const dots = document.getElementById("businessSlideDots");
+
+      if (!businessMedia.length) {
+        mediaContainer.innerHTML = '<p class="px-6 py-16 text-center text-sm text-white/80">Adicione fotos ou vídeos para montar sua vitrine.</p>';
+        controls.classList.add("hidden");
+        clearInterval(businessSlideTimer);
+        return;
+      }
+
+      businessSlideIndex = businessSlideIndex % businessMedia.length;
+      const item = businessMedia[businessSlideIndex];
+      mediaContainer.innerHTML = item.type.startsWith("video/")
+        ? `<video src="${item.url}" autoplay muted loop playsinline class="h-64 w-full object-cover"></video>`
+        : `<img src="${item.url}" alt="Foto da vitrine" class="h-64 w-full object-cover">`;
+
+      const activeMedia = mediaContainer.querySelector("video, img");
+      if (activeMedia) {
+        activeMedia.addEventListener("error", () => showMediaCompatibilityWarning(item.name), { once: true });
+        if (activeMedia.tagName === "VIDEO" && activeMedia.canPlayType(item.type) === "") {
+          showMediaCompatibilityWarning(item.name);
+        }
+      }
+
+      controls.classList.toggle("hidden", businessMedia.length < 2);
+      dots.innerHTML = businessMedia.map((_, index) =>
+        `<button type="button" data-business-slide="${index}" class="h-2 rounded-full ${index === businessSlideIndex ? "w-5 bg-white" : "w-2 bg-white/50"}" aria-label="Mostrar slide ${index + 1}"></button>`
+      ).join("");
+
+      configureShowcasePlayback();
+    }
+
+    function nextBusinessSlide() {
+      if (businessMedia.length < 2) return;
+      businessSlideIndex = (businessSlideIndex + 1) % businessMedia.length;
+      renderBusinessShowcase();
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.remove("hidden");
+      setTimeout(() => toast.classList.add("hidden"), 2400);
+    }
+    function openModal(id) { document.getElementById(id).classList.add("open"); }
+    function closeModals() { document.querySelectorAll(".modal-backdrop").forEach(m => m.classList.remove("open")); }
+
+    function render() {
+      const monthMovements = movements.filter(m => m.date.startsWith("2026-11"));
+      const income = monthMovements.filter(m => m.kind === "Ganho").reduce((s, m) => s + m.amount, 0);
+      const expenses = monthMovements.filter(m => m.kind === "Gasto").reduce((s, m) => s + m.amount, 0);
+      const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+      document.getElementById("totalBalance").textContent = money(totalBalance);
+      document.getElementById("incomeTotal").textContent = money(income);
+      document.getElementById("expenseTotal").textContent = money(expenses);
+
+      const movementHTML = list => list.slice().reverse().map(m => {
+        const positive = m.kind === "Ganho";
+        const icon = positive ? "↙" : m.kind === "Transferência" ? "⇄" : "↗";
+        const amountClass = positive ? "text-emerald-700" : "text-slate-800";
+        const sign = positive ? "+" : m.kind === "Gasto" ? "−" : "";
+        return `<div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-3">
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${positive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}">${icon}</span>
+            <div class="min-w-0"><p class="truncate font-semibold">${escapeHTML(m.description)}</p><p class="text-xs text-slate-500">${escapeHTML(m.category)} · ${escapeHTML(m.account)} · ${formatDate(m.date)}</p></div>
+          </div>
+          <p class="ml-2 shrink-0 text-sm font-bold ${amountClass}">${sign}${money(m.amount)}</p>
+        </div>`;
+      }).join("");
+
+      document.getElementById("recentList").innerHTML = movementHTML(movements.slice(-4));
+      const filtered = currentFilter === "Todas" ? movements : movements.filter(m => m.kind === currentFilter);
+      document.getElementById("movementList").innerHTML = filtered.length ? movementHTML(filtered) : '<p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Nenhuma movimentação neste filtro.</p>';
+
+      document.getElementById("accountList").innerHTML = accounts.map(a => `<div class="flex items-center justify-between border-t border-slate-100 pt-3"><span class="text-sm font-medium">${escapeHTML(a.name)}</span><span class="text-sm font-semibold">${money(a.balance)}</span></div>`).join("");
+      document.getElementById("categoryList").innerHTML = categories.map(c => `<span class="rounded-full bg-slate-100 px-3 py-1.5 text-sm">${escapeHTML(c.name)} <span class="text-slate-400">· ${escapeHTML(c.kind)}</span></span>`).join("");
+
+      renderAppointments();
+      updateGreeting();
+
+      const categorySelect = document.getElementById("movementCategory");
+      const previousCategory = categorySelect.value;
+      categorySelect.innerHTML = categories.map(c => `<option>${escapeHTML(c.name)}</option>`).join("");
+      if (categories.some(c => c.name === previousCategory)) categorySelect.value = previousCategory;
+
+      const accountSelect = document.getElementById("movementAccount");
+      const previousAccount = accountSelect.value;
+      accountSelect.innerHTML = accounts.map(a => `<option>${escapeHTML(a.name)}</option>`).join("");
+      if (accounts.some(a => a.name === previousAccount)) accountSelect.value = previousAccount;
+    }
+
+    function renderAppointments() {
+      const list = document.getElementById("appointmentList");
+      const now = new Date();
+      const upcoming = appointments
+        .filter(a => new Date(`${a.date}T${a.time}:00`) >= now)
+        .sort((a, b) => new Date(`${a.date}T${a.time}:00`) - new Date(`${b.date}T${b.time}:00`));
+
+      list.innerHTML = upcoming.length ? upcoming.map(a => `
+        <div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-3">
+          <div class="min-w-0">
+            <p class="truncate font-semibold">${escapeHTML(a.title)}</p>
+            <p class="text-xs text-slate-500">${formatDate(a.date)} · ${escapeHTML(a.time)} · aviso ${a.reminder === 0 ? "no horário" : `${a.reminder} min antes`}</p>
+          </div>
+          <button class="ml-3 shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-rose-600" data-delete-appointment="${a.id}" aria-label="Excluir compromisso">Excluir</button>
+        </div>`).join("") : '<p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Nenhum compromisso agendado. Adicione um para receber lembretes.</p>';
+
+      list.querySelectorAll("[data-delete-appointment]").forEach(button => button.addEventListener("click", () => {
+        appointments = appointments.filter(a => a.id !== Number(button.dataset.deleteAppointment));
+        render();
+        showToast("Compromisso removido");
+      }));
+    }
+
+    function updateGreeting() {
+      const hour = new Date().getHours();
+      const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+      document.getElementById("greetingTitle").textContent = `${greeting}, Nereu! Que bom ter você por aqui — o que vamos fazer hoje?`;
+      const now = new Date();
+      const upcoming = appointments
+        .filter(a => new Date(`${a.date}T${a.time}:00`) >= now)
+        .sort((a, b) => new Date(`${a.date}T${a.time}:00`) - new Date(`${b.date}T${b.time}:00`))[0];
+      document.getElementById("agendaGreeting").textContent = upcoming
+        ? `Só para lembrar: ${upcoming.title} é ${upcoming.date === now.toISOString().slice(0, 10) ? "hoje" : `dia ${formatDate(upcoming.date)}`} às ${upcoming.time}. Está tudo certo para esse compromisso?`
+        : "Como está seu dia? Se tiver algum compromisso, posso ajudar a manter ele em mente.";
+    }
+
+    let petBubbleTimer;
+    let petMoveTimer;
+    const petStateIcons = { awake: "🐱", waking: "🌅", meditating: "🧘", sleeping: "😴" };
+
+    function setPetState(state) {
+      const pet = document.getElementById("petCompanion");
+      const emoji = document.getElementById("petEmoji");
+      if (!pet || !emoji) return;
+      pet.classList.remove("pet-sleeping", "pet-meditating", "pet-waking");
+      if (state === "sleeping") pet.classList.add("pet-sleeping");
+      if (state === "meditating") pet.classList.add("pet-meditating");
+      if (state === "waking") pet.classList.add("pet-waking");
+      emoji.textContent = petStateIcons[state] || petStateIcons.awake;
+    }
+
+    function petSpeak(message, state = "awake") {
+      const bubble = document.getElementById("petBubble");
+      if (!bubble) return;
+      bubble.textContent = message;
+      bubble.classList.remove("hidden");
+      setPetState(state);
+      clearTimeout(petBubbleTimer);
+      petBubbleTimer = setTimeout(() => bubble.classList.add("hidden"), 9000);
+    }
+
+    function updatePetForTime() {
+      const hour = new Date().getHours();
+      if (hour >= 22 || hour < 6) setPetState("sleeping");
+      else if (hour >= 6 && hour < 9) setPetState("waking");
+      else if (hour >= 12 && hour < 14) setPetState("meditating");
+      else setPetState("awake");
+    }
+
+    function movePet() {
+      const pet = document.getElementById("petCompanion");
+      if (!pet || pet.classList.contains("pet-hidden")) return;
+      const pageHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        window.innerHeight
+      );
+      const maxLeft = Math.max(8, window.innerWidth - 90);
+      const maxTop = Math.max(18, pageHeight - 130);
+      pet.style.left = `${8 + Math.random() * Math.max(1, maxLeft - 8)}px`;
+      pet.style.top = `${18 + Math.random() * Math.max(1, maxTop - 18)}px`;
+    }
+
+    let petPhotoUrl = null;
+    document.getElementById("petPhotoInput").addEventListener("change", event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        showToast("Escolha um arquivo de imagem");
+        event.target.value = "";
+        return;
+      }
+      if (petPhotoUrl) URL.revokeObjectURL(petPhotoUrl);
+      petPhotoUrl = URL.createObjectURL(file);
+      const photo = document.getElementById("petPhoto");
+      photo.src = petPhotoUrl;
+      photo.classList.remove("hidden");
+      document.getElementById("petEmoji").classList.add("hidden");
+      document.getElementById("petPhotoStatus").textContent = `Foto selecionada: ${file.name}`;
+      showToast("Foto do bichinho atualizada");
+      event.target.value = "";
+    });
+
+    document.getElementById("petAvatar").addEventListener("click", () => {
+      document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === "homePage"));
+      document.querySelectorAll(".nav-item").forEach(item => {
+        const active = item.dataset.page === "homePage";
+        item.classList.toggle("nav-active", active);
+        item.classList.toggle("text-slate-500", !active);
+      });
+      const panel = document.getElementById("conversationPanel");
+      panel.classList.add("open");
+      document.querySelector("header details").open = true;
+      document.getElementById("conversationPrompt").textContent = "Oi, Nereu! O que está animando seu dia hoje?";
+      document.getElementById("businessShowcase")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => document.getElementById("experienceText")?.focus({ preventScroll: true }), 350);
+    });
+    document.getElementById("petClose").addEventListener("click", () => {
+      document.getElementById("petCompanion").classList.add("pet-hidden");
+      document.getElementById("petReopen").classList.remove("hidden");
+    });
+    document.getElementById("petReopen").addEventListener("click", () => {
+      document.getElementById("petCompanion").classList.remove("pet-hidden");
+      document.getElementById("petReopen").classList.add("hidden");
+      petSpeak("Voltei! Como você está hoje? 🐾");
+      movePet();
+    });
+    window.addEventListener("resize", movePet);
+
+    function checkAppointmentReminders() {
+      const now = new Date();
+      appointments.forEach(a => {
+        const startsAt = new Date(`${a.date}T${a.time}:00`);
+        const alertAt = new Date(startsAt.getTime() - a.reminder * 60000);
+        const key = String(a.id);
+        if (!alertedAppointments.has(key) && now >= alertAt && now <= new Date(startsAt.getTime() + 5 * 60000)) {
+          alertedAppointments.add(key);
+          showToast(`Lembrete: ${a.title} às ${a.time}`);
+          petSpeak(`Está quase na hora: ${a.title}, às ${a.time}. Quer se preparar com calma?`, "waking");
+        }
+      });
+    }
+
+    function formatDate(date) {
+      if (!date) return "";
+      return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(date + "T12:00:00"));
+    }
+    function escapeHTML(text) {
+      return String(text).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    document.querySelectorAll("[data-page]").forEach(button => button.addEventListener("click", () => {
+      document.querySelectorAll(".page").forEach(page => page.classList.remove("active"));
+      document.getElementById(button.dataset.page).classList.add("active");
+      document.querySelectorAll(".nav-item").forEach(item => item.classList.toggle("nav-active", item.dataset.page === button.dataset.page));
+      document.querySelectorAll(".nav-item").forEach(item => item.classList.toggle("text-slate-500", item.dataset.page !== button.dataset.page));
+    }));
+    document.querySelectorAll("[data-open]").forEach(button => button.addEventListener("click", () => openModal(button.dataset.open)));
+    document.querySelectorAll(".close-modal").forEach(button => button.addEventListener("click", closeModals));
+    document.querySelectorAll(".modal-backdrop").forEach(modal => modal.addEventListener("click", e => { if (e.target === modal) closeModals(); }));
+    document.querySelectorAll(".filter-btn").forEach(button => button.addEventListener("click", () => {
+      currentFilter = button.dataset.filter;
+      document.querySelectorAll(".filter-btn").forEach(b => b.className = b === button ? "filter-btn rounded-full bg-teal-700 px-4 py-2 text-sm font-medium text-white" : "filter-btn rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600");
+      render();
+    }));
+
+    document.getElementById("movementForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const kind = document.getElementById("movementKind").value;
+      const amount = Number(document.getElementById("movementAmount").value);
+      const accountName = document.getElementById("movementAccount").value;
+      movements.push({
+        description: document.getElementById("movementDescription").value.trim(),
+        amount, kind,
+        category: document.getElementById("movementCategory").value,
+        account: accountName,
+        date: document.getElementById("movementDate").value
+      });
+      const account = accounts.find(a => a.name === accountName);
+      if (account && kind === "Ganho") account.balance += amount;
+      if (account && kind === "Gasto") account.balance -= amount;
+      e.target.reset();
+      document.getElementById("movementDate").value = new Date().toISOString().slice(0, 10);
+      closeModals(); render(); showToast("Movimentação adicionada");
+    });
+    document.getElementById("accountForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const name = document.getElementById("accountName").value.trim();
+      if (accounts.some(a => a.name.toLowerCase() === name.toLowerCase())) return showToast("Essa conta já existe");
+      accounts.push({ name, balance: Number(document.getElementById("accountBalance").value) || 0 });
+      e.target.reset(); closeModals(); render(); showToast("Conta adicionada");
+    });
+    document.getElementById("categoryForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const name = document.getElementById("categoryName").value.trim();
+      if (categories.some(c => c.name.toLowerCase() === name.toLowerCase())) return showToast("Essa categoria já existe");
+      categories.push({ name, kind: document.getElementById("categoryKind").value });
+      e.target.reset(); closeModals(); render(); showToast("Categoria adicionada");
+    });
+
+    document.getElementById("appointmentForm").addEventListener("submit", e => {
+      e.preventDefault();
+      appointments.push({
+        id: Date.now(),
+        title: document.getElementById("appointmentTitle").value.trim(),
+        date: document.getElementById("appointmentDate").value,
+        time: document.getElementById("appointmentTime").value,
+        reminder: Number(document.getElementById("appointmentReminder").value)
+      });
+      e.target.reset();
+      closeModals();
+      render();
+      showToast("Compromisso agendado");
+    });
+
+
+    document.getElementById("editBusinessBtn")?.addEventListener("click", () => {
+      document.getElementById("businessNameInput").value = businessProfile.name === "Minha vitrine" ? "" : businessProfile.name;
+      document.getElementById("businessDescriptionInput").value = businessProfile.description;
+      document.getElementById("businessExperienceInput").value = businessProfile.experience;
+      document.getElementById("businessAdsInput").value = businessProfile.ads || "";
+      document.getElementById("businessResumeTitleInput").value = businessProfile.resumeTitle || "";
+      document.getElementById("businessResumeSummaryInput").value = businessProfile.resumeSummary || "";
+      document.getElementById("businessResumeSkillsInput").value = (businessProfile.resumeSkills || []).join(", ");
+      document.getElementById("businessOffersInput").value = businessProfile.offers.join(", ");
+      openModal("businessEditModal");
+    });
+
+    document.getElementById("businessForm").addEventListener("submit", e => {
+      e.preventDefault();
+      businessProfile = {
+        name: document.getElementById("businessNameInput").value.trim() || "Minha vitrine",
+        description: document.getElementById("businessDescriptionInput").value.trim(),
+        experience: document.getElementById("businessExperienceInput").value.trim(),
+        ads: document.getElementById("businessAdsInput").value.trim(),
+        resumeTitle: document.getElementById("businessResumeTitleInput").value.trim(),
+        resumeSummary: document.getElementById("businessResumeSummaryInput").value.trim(),
+        resumeSkills: document.getElementById("businessResumeSkillsInput").value.split(",").map(item => item.trim()).filter(Boolean),
+        offers: document.getElementById("businessOffersInput").value.split(",").map(item => item.trim()).filter(Boolean)
+      };
+      closeModals();
+      renderBusinessShowcase();
+      showToast("Vitrine atualizada");
+    });
+
+    document.getElementById("businessMediaInput").addEventListener("change", e => {
+      const files = Array.from(e.target.files || []);
+      let ignoredNameCount = 0;
+      let incompatibleCount = 0;
+
+      files.forEach(file => {
+        const parsed = parseBusinessMediaName(file.name);
+        if (!parsed) {
+          ignoredNameCount++;
+          return;
+        }
+
+        const expectedPrefix = parsed.kind === "foto" ? "image/" : "video/";
+        if (!file.type.startsWith(expectedPrefix)) {
+          incompatibleCount++;
+          showMediaCompatibilityWarning(file.name);
+          return;
+        }
+
+        businessMedia.push({
+          name: file.name,
+          kind: parsed.kind,
+          order: parsed.order,
+          type: file.type,
+          file,
+          url: URL.createObjectURL(file)
+        });
+      });
+
+      businessMedia.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "pt-BR"));
+      businessSlideIndex = 0;
+      renderBusinessShowcase();
+      if (ignoredNameCount) showToast(`${ignoredNameCount} arquivo(s) ignorado(s): nome fora do padrão da vitrine.`);
+      if (incompatibleCount && !businessMedia.length) showToast("Arquivo elegível reconhecido, mas incompatível com o tipo de mídia esperado.");
+      e.target.value = "";
+    });
+
+    document.getElementById("shareBusinessMediaBtn").addEventListener("click", async () => {
+      const files = businessMedia.map(item => item.file).filter(Boolean);
+      if (!files.length) {
+        showToast("Adicione fotos ou vídeos elegíveis à vitrine antes de compartilhar");
+        return;
+      }
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files })) {
+        try {
+          await navigator.share({
+            files,
+            title: businessProfile.name || "Minha vitrine",
+            text: "Conheça meu trabalho!"
+          });
+        } catch (error) {
+          if (error.name !== "AbortError") showToast("Não foi possível abrir o compartilhamento neste navegador");
+        }
+        return;
+      }
+
+      files.forEach(file => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(file);
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      });
+      showToast("Arquivos baixados. Agora você pode anexá-los no app que preferir.");
+    });
+
+    document.getElementById("businessPrevSlide").addEventListener("click", () => {
+      if (!businessMedia.length) return;
+      businessSlideIndex = (businessSlideIndex - 1 + businessMedia.length) % businessMedia.length;
+      renderBusinessShowcase();
+    });
+    document.getElementById("businessNextSlide").addEventListener("click", nextBusinessSlide);
+    document.getElementById("businessSpeedControl").addEventListener("input", configureShowcasePlayback);
+    document.getElementById("businessSlideDots").addEventListener("click", e => {
+      const button = e.target.closest("[data-business-slide]");
+      if (!button) return;
+      businessSlideIndex = Number(button.dataset.businessSlide);
+      renderBusinessShowcase();
+    });
+
+    document.getElementById("viewResumeBtn")?.addEventListener("click", () => openModal("resumeModal"));
+
+    document.getElementById("clientInterviewBtn")?.addEventListener("click", () => {
+      document.getElementById("clientInterviewForm").reset();
+      document.getElementById("clientInterviewReport").classList.add("hidden");
+      openModal("clientInterviewModal");
+    });
+
+    document.getElementById("clientInterviewForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const answer = id => document.getElementById(id).value.trim() || "Não informado.";
+      const client = answer("interviewClient");
+      const report = [
+        `RELATO DE DESCOBERTA${client !== "Não informado." ? ` — ${client}` : ""}`,
+        "",
+        `Problema principal: ${answer("interviewProblem")}`,
+        `Contexto em que ocorre: ${answer("interviewContext")}`,
+        `Frequência e duração: ${answer("interviewFrequency")}`,
+        `Impacto na rotina ou nos resultados: ${answer("interviewImpact")}`,
+        `Soluções já tentadas e resultado: ${answer("interviewAttempts")}`,
+        `Resultado desejado: ${answer("interviewOutcome")}`,
+        `Prazo, obstáculos ou limitações: ${answer("interviewConstraints")}`,
+        `Ajuda esperada: ${answer("interviewSupport")}`,
+        "",
+        "Síntese: O cliente relata o problema descrito acima, seus impactos e as tentativas já realizadas. A necessidade prioritária e o resultado esperado devem ser validados diretamente com ele antes de definir uma solução."
+      ].join("\\n");
+      document.getElementById("clientInterviewReportText").textContent = report;
+      document.getElementById("clientInterviewReport").classList.remove("hidden");
+    });
+
+    document.getElementById("requestQuoteBtn")?.addEventListener("click", () => openModal("quoteModal"));
+    document.getElementById("quoteForm").addEventListener("submit", e => {
+      e.preventDefault();
+      e.target.reset();
+      closeModals();
+      showToast("Pedido preparado no protótipo");
+    });
+
+    document.getElementById("simulateBtn").addEventListener("click", () => {
+      const initial = Math.max(0, Number(document.getElementById("initialAmount").value) || 0);
+      const monthly = Math.max(0, Number(document.getElementById("monthlyAmount").value) || 0);
+      const months = Math.max(1, Math.min(1200, Number(document.getElementById("months").value) || 1));
+      const annualRate = Number(document.getElementById("annualRate").value) || 0;
+      const monthlyRate = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
+      let balance = initial;
+      for (let i = 0; i < months; i++) balance = balance * (1 + monthlyRate) + monthly;
+      const invested = initial + monthly * months;
+      document.getElementById("finalValue").textContent = money(balance);
+      document.getElementById("investedValue").textContent = money(invested);
+      document.getElementById("returnValue").textContent = money(balance - invested);
+      document.getElementById("simulationResult").classList.remove("hidden");
+    });
+
+    let deferredInstallPrompt = null;
+    const installAppBtn = document.getElementById("installAppBtn");
+
+    const pwaManifestLink = document.createElement("link");
+    pwaManifestLink.rel = "manifest";
+    pwaManifestLink.href = "./manifest.webmanifest";
+    document.head.appendChild(pwaManifestLink);
+
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      navigator.serviceWorker.register("./service-worker.js").catch(() => {
+        console.info("A instalação PWA ficará disponível após adicionar o service worker ao projeto.");
+      });
+    }
+
+    window.addEventListener("beforeinstallprompt", event => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      installAppBtn.classList.remove("hidden");
+    });
+
+    installAppBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) {
+        showToast("Para instalar, abra o menu do navegador e escolha ‘Adicionar à tela inicial’.");
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installAppBtn.classList.add("hidden");
+    });
+
+    window.addEventListener("appinstalled", () => {
+      installAppBtn.classList.add("hidden");
+      showToast("You instalado no dispositivo");
+    });
+
+    document.getElementById("addInvestmentBtn").addEventListener("click", () => showToast("Cadastro de carteira: próximo passo do protótipo"));
+    document.getElementById("profileBtn").addEventListener("click", () => showToast("Perfil de demonstração"));
+    const conversationPrompts = [
+      "Oi, Nereu! O que está animando seu dia hoje?",
+      "Como você está se sentindo agora? Quer me contar?",
+      "Qual foi a melhor parte do seu dia até aqui?",
+      "Tem algo que eu possa ajudar você a organizar hoje?",
+      "O que você está aprendendo ou descobrindo ultimamente?",
+      "Qual pequena conquista você quer comemorar hoje?",
+      "Tem algum plano especial para esta semana?",
+      "Aconteceu algo interessante que você gostaria de compartilhar?",
+      "Se pudesse fazer uma pausa agora, o que escolheria?",
+      "O que você gostaria de realizar antes do fim do dia?"
+    ];
+    let conversationPromptIndex = 0;
+    setInterval(() => {
+      conversationPromptIndex = (conversationPromptIndex + 1) % conversationPrompts.length;
+      const prompt = document.getElementById("conversationPrompt");
+      if (prompt) prompt.textContent = conversationPrompts[conversationPromptIndex];
+    }, 9000);
+
+    let experienceAudioBlob = null;
+    let experienceVideoFile = null;
+    let audioRecorder = null;
+    let audioChunks = [];
+    let audioStream = null;
+
+    document.getElementById("recordAudioBtn").addEventListener("click", async event => {
+      const button = event.currentTarget;
+      const status = document.getElementById("recordingStatus");
+      if (audioRecorder && audioRecorder.state === "recording") {
+        audioRecorder.stop();
+        button.textContent = "● Gravar áudio";
+        status.textContent = "Finalizando gravação...";
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        status.textContent = "A gravação de áudio não é compatível com este navegador.";
+        return;
+      }
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        audioRecorder = new MediaRecorder(audioStream);
+        audioRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data); };
+        audioRecorder.onstop = () => {
+          experienceAudioBlob = new Blob(audioChunks, { type: audioRecorder.mimeType || "audio/webm" });
+          audioStream?.getTracks().forEach(track => track.stop());
+          audioStream = null;
+          status.textContent = "Áudio gravado. Você pode guardar o relato.";
+        };
+        audioRecorder.start();
+        button.textContent = "■ Parar gravação";
+        status.textContent = "Gravando áudio...";
+      } catch {
+        status.textContent = "Não foi possível acessar o microfone. Verifique a permissão do navegador.";
+      }
+    });
+
+    let experienceSpeechRecognition = null;
+    let dictationActive = false;
+
+    document.getElementById("dictateExperienceBtn").addEventListener("click", () => {
+      const button = document.getElementById("dictateExperienceBtn");
+      const status = document.getElementById("recordingStatus");
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (dictationActive && experienceSpeechRecognition) {
+        experienceSpeechRecognition.stop();
+        return;
+      }
+      if (!SpeechRecognition) {
+        status.textContent = "A transcrição de voz não é compatível com este navegador. Você ainda pode gravar um áudio ou escrever seu relato.";
+        return;
+      }
+
+      experienceSpeechRecognition = new SpeechRecognition();
+      experienceSpeechRecognition.lang = "pt-BR";
+      experienceSpeechRecognition.continuous = true;
+      experienceSpeechRecognition.interimResults = false;
+
+      experienceSpeechRecognition.onstart = () => {
+        dictationActive = true;
+        button.textContent = "■ Parar transcrição";
+        status.textContent = "Ouvindo sua fala para transcrevê-la...";
+      };
+      experienceSpeechRecognition.onresult = event => {
+        const transcript = Array.from(event.results)
+          .slice(event.resultIndex)
+          .filter(result => result.isFinal)
+          .map(result => result[0].transcript.trim())
+          .filter(Boolean)
+          .join(" ");
+        if (!transcript) return;
+
+        const textarea = document.getElementById("experienceText");
+        const formatted = transcript.replace(/(^|[.!?]\\s+)([a-záéíóúâêôãõç])/gi, (match, boundary, letter) => boundary + letter.toLocaleUpperCase("pt-BR"));
+        textarea.value = `${textarea.value.trim()}${textarea.value.trim() ? " " : ""}${formatted}`;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        status.textContent = "Transcrição adicionada. Revise o texto antes de guardar o relato.";
+      };
+      experienceSpeechRecognition.onerror = event => {
+        status.textContent = event.error === "not-allowed"
+          ? "Permita o acesso ao microfone nas configurações do navegador para transcrever."
+          : "A transcrição foi interrompida. Você pode tentar novamente.";
+      };
+      experienceSpeechRecognition.onend = () => {
+        dictationActive = false;
+        button.textContent = "🎙 Transcrever voz";
+      };
+
+      try {
+        experienceSpeechRecognition.start();
+      } catch {
+        status.textContent = "Não foi possível iniciar a transcrição. Tente novamente.";
+      }
+    });
+
+    document.getElementById("experienceVideoInput").addEventListener("change", event => {
+      experienceVideoFile = event.target.files?.[0] || null;
+      document.getElementById("recordingStatus").textContent = experienceVideoFile
+        ? `Vídeo selecionado: ${experienceVideoFile.name}`
+        : "";
+    });
+
+    document.getElementById("saveExperienceBtn").addEventListener("click", () => {
+      const text = document.getElementById("experienceText").value.trim();
+      if (!text && !experienceAudioBlob && !experienceVideoFile) {
+        showToast("Nenhum relato foi registrado");
+        const conversationDetails = document.querySelector("header details");
+        if (conversationDetails) conversationDetails.open = false;
+        document.getElementById("conversationPanel").classList.remove("open");
+        document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === "homePage"));
+        document.querySelectorAll(".nav-item").forEach(item => {
+          const active = item.dataset.page === "homePage";
+          item.classList.toggle("nav-active", active);
+          item.classList.toggle("text-slate-500", !active);
+        });
+        document.getElementById("petCompanion").classList.remove("pet-hidden");
+        document.getElementById("petReopen").classList.add("hidden");
+        document.getElementById("businessShowcase")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      const saved = document.getElementById("experienceSaved");
+      saved.replaceChildren();
+      if (text) {
+        const paragraph = document.createElement("p");
+        paragraph.className = "abnt-text whitespace-pre-wrap text-slate-700";
+        paragraph.textContent = text;
+        saved.appendChild(paragraph);
+      }
+      if (experienceAudioBlob) {
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.className = "mt-2 block w-full";
+        audio.src = URL.createObjectURL(experienceAudioBlob);
+        saved.appendChild(audio);
+      }
+      if (experienceVideoFile) {
+        const video = document.createElement("video");
+        video.controls = true;
+        video.playsInline = true;
+        video.className = "mt-2 max-h-56 w-full rounded-xl";
+        video.src = URL.createObjectURL(experienceVideoFile);
+        saved.appendChild(video);
+      }
+      saved.classList.remove("hidden");
+      const reply = document.getElementById("experienceReply");
+      reply.textContent = "Adorei você ter compartilhado isso comigo, Nereu! Quer me contar mais sobre essa experiência?";
+      reply.classList.remove("hidden");
+      showToast("Relato guardado nesta sessão");
+      const conversationDetails = document.querySelector("header details");
+      if (conversationDetails) conversationDetails.open = false;
+      document.getElementById("conversationPanel").classList.remove("open");
+      document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === "homePage"));
+      document.querySelectorAll(".nav-item").forEach(item => {
+        const active = item.dataset.page === "homePage";
+        item.classList.toggle("nav-active", active);
+        item.classList.toggle("text-slate-500", !active);
+      });
+      document.getElementById("businessShowcase")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    document.getElementById("movementDate").value = new Date().toISOString().slice(0, 10);
+    updatePetForTime();
+    movePet();
+    petMoveTimer = setInterval(movePet, 6500);
+    setInterval(updatePetForTime, 60000);
+    render();
+    renderBusinessShowcase();
+    checkAppointmentReminders();
+    setInterval(checkAppointmentReminders, 30000);
+  </script>
+</div></body></html>
